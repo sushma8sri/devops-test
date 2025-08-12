@@ -1,0 +1,24 @@
+id: Build Number // Get Versions // Install Dependencies // ##can use any name which you can understand.
+name:  gcr.io/cloud-builders/gcloud // 'gcr.io/cloud-builders/docker' // 'gcr.io/cloud-builders/npm' //  'gcr.io/cloud-builders/git' // 'gcr.io/cloud-builders/mvn' // 'gcr.io/cloud-builders/gradle' // 'gcr.io/cloud-builders/python' // 'gcr.io/cloud-builders/terraform' // 'gcr.io/cloud-builders/helm' // 'gcr.io/cloud-builders/kubectl'
+        'gcr.io/my-project/my-custom-image' ##custom
+entrypoint: bash // sh // python3 // node // ./my-script.sh ##for custom shell script . // mvn // 
+arg: ['build', '-t', 'gcr.io/$PROJECT_ID/my-image:$TAG', '.'] //  ['run', 'deploy', '--env', 'production'] // ['my-script.sh', 'arg1', 'arg2'] // ['clone', 'https://github.com/my/repo.git'] // ['my_script.py', '--option', 'value'] // ['clean', 'install'] // ['install'] // ['push', 'gcr.io/my-project/my-image'] // ['build', '-t', 'my-image', '.'] 
+# 1. Multi-line Format
+#    args:
+#      - build
+#      - -t
+#      - gcr.io/$PROJECT_ID/my-image:$TAG
+#      - .
+
+# 2. Inline Format with Quoting
+#    args: ["build", "-t", "gcr.io/$PROJECT_ID/my-image:$TAG", "."]
+
+# 3. YAML Block Style
+#    args: >
+#      build
+#      -t
+#      gcr.io/$PROJECT_ID/my-image:$TAG
+#      .
+
+# 4. As a Concatenated String (Not Valid for args)
+#    args: "build -t gcr.io/$PROJECT_ID/my-image:$TAG ."
