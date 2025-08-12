@@ -10,6 +10,8 @@ arg: ['build', '-t', 'gcr.io/$PROJECT_ID/my-image:$TAG', '.'] //  ['run', 'deplo
 #      - gcr.io/$PROJECT_ID/my-image:$TAG
 #      - .
 
+cloudbuild.yaml
+
 # 2. Inline Format with Quoting
 #    args: ["build", "-t", "gcr.io/$PROJECT_ID/my-image:$TAG", "."]
 
@@ -22,3 +24,4 @@ arg: ['build', '-t', 'gcr.io/$PROJECT_ID/my-image:$TAG', '.'] //  ['run', 'deplo
 
 # 4. As a Concatenated String (Not Valid for args)
 #    args: "build -t gcr.io/$PROJECT_ID/my-image:$TAG ."
+
