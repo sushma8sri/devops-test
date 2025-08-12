@@ -1,0 +1,93 @@
+##Build Number
+file="${TRIGGER_NAME}_number.txt"
+file_exists=$(gsutil ls gs://$BUILD_NUMBER_BUCKET/$file | wc -l)
+if [[ $file_exists -eq 0 ]]; then
+  echo 1 > $file
+else
+  gsutil cp gs://$BUILD_NUMBER_BUCKET/$file ./
+  build_number=$(cat $file)
+  build_number=$((build_number + 1))
+  echo $build_number > $file
+fi
+gsutil cp ./$file gs://$BUILD_NUMBER_BUCKET/
+echo "Build number is $build_number"
+
+
+##Get Versions
+_DOCKER_BUILD_VERSION_FILES=($_DOCKER_BUILD_VERSION_FILES)
+_DOCKER_BUILD_IMAGE_NAMES=($_DOCKER_BUILD_IMAGE_NAMES)
+for vf in "${_DOCKER_BUILD_VERSION_FILES[@]}"
+do
+  ver=$(grep -Po "(?<=<Version>)[^<]+(?=</Version>)" "${vf}")
+  build_number=$(cat "${TRIGGER_NAME}_number.txt")
+  echo "${_DOCKER_BUILD_IMAGE_NAMES[$i]}:${ver}.${build_number}-${SHORT_SHA}" >> versions.txt
+done
+cat versions.txt
+
+##Create npmrc
+echo "registry=https://artifactory.globalpay.com/artifactory/api/npm/npm/" > ktr.Spa/.npmrc
+echo "//artifactory.globalpay.com/artifactory/api/npm/npm/:_auth=\${NPMTOKEN}" >> ktr.Spa/.npmrc
+echo "always-auth=true" >> ktr.Spa/.npmrc
+
+##Docker Build
+for df in "${_DOCKER_BUILD_DOCKER_FILES[@]}"
+do
+  ver=$(grep -Po "(?<=${_DOCKER_BUILD_IMAGE_NAMES[$i]}:)[^:]+$" versions.txt)
+  docker build -f "${df}" -t "${_DOCKER_REPO}/${_DOCKER_BUILD_IMAGE_NAMES[$i]}:${ver}" .
+  docker push "${_DOCKER_REPO}/${_DOCKER_BUILD_IMAGE_NAMES[$i]}:${ver}"
+done
+
+##Update Image Versions in K8S Manifests
+yaml_files=$(find /cicd -name "*.yaml" -o -name "*.yml")
+for df in "${_DOCKER_BUILD_DOCKER_FILES[@]}"
+do
+  ver=$(grep -Po "(?<=${_DOCKER_BUILD_IMAGE_NAMES[$i]}:)[^:]+$" "$DOCKER_BUILD_WORK_DIR/versions.txt")
+  for f in $yaml_files
+  do
+    sed -i "s+${_DOCKER_BUILD_IMAGE_NAMES[$i]}:.*+${_DOCKER_REPO}/${_DOCKER_BUILD_IMAGE_NAMES[$i]}:${ver}+g" "$f"
+  done
+done
+
+##Create Release
+ver=$(grep -Po "(?<=${_CLOUD_DEPLOY_PIPELINE_VERSION})[^: ]+" versions.txt)
+gcloud deploy releases create v$(echo "${ver}" | sed 's/\./-/g') --project=${PROJECT_ID} --region=${_CLOUD_DEPLOY_PIPELINE_REGION} --delivery-pipeline=${_CLOUD_DEPLOY_PIPELINE} --skaffold-file=/cicd/${_CLOUD_DEPLOY_PIPELINE}/skaffold.yaml
+
+##Deploying an Application
+kubectl apply -f k8s/deployment.yaml
+
+
+##Updating a Deployment
+kubectl set image deployment/my-app my-app=${_DOCKER_REPO}/my-app:${TAG}
+
+
+##Rolling Back a Deployment
+kubectl rollout undo deployment/my-app
+
+
+##Scaling a Deployment
+kubectl scale deployment my-app --replicas=3
+
+
+##Checking Deployment Status
+kubectl rollout status deployment/my-app
+
+
+##Get Pods and Their Status
+kubectl get pods -l app=my-app
+
+
+##Viewing Logs of a Pod
+kubectl logs $(kubectl get pods -l app=my-app -o jsonpath="{.items[0].metadata.name}")
+
+
+
+##Executing a Command Inside a Pod
+kubectl exec -it my-app-pod -- /bin/bash
+
+
+##Deleting a Deployment
+kubectl delete deployment my-app
+
+
+##Creating a Service
+kubectl expose deployment my-app --type=LoadBalancer --name=my-app-service
